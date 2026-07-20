@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="AceApt AI — a voice-first AI aptitude tutor. Ace teaches placement-exam topics through spoken, step-by-step conversation, plus a Groq-powered live mode that generates fresh practice problems on demand." />
+<title>AceApt AI — aptitude, gently</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- Screen-reader announcer: mirrors each new spoken line as plain text,
+     once per line (not per animated word) — WCAG 2.1 SC 4.1.3 (Status Messages) -->
+<div id="srAnnounce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<div class="ambient"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">A</div><div class="brand-word">Ace<b>Apt</b> AI</div></div>
+    <button type="button" class="lesson-pill" id="lessonPill" title="Switch level" aria-label="Switch level"><b id="pillTopic">Simple Interest</b> · <span id="pillLevel">Beginner</span></button>
+    <div class="progress"><i id="progressFill"></i></div>
+    <div class="top-actions">
+      <button class="try-btn" id="tryBtn" title="Live chat with Ace (Groq)">✦ Try live</button>
+      <button class="icon-btn" id="voiceBtn" title="Mute / unmute" aria-label="Mute">🔊</button>
+      <button class="icon-btn" id="restartBtn" title="Start over" aria-label="Start over">↺</button>
+    </div>
+  </header>
+
+  <main class="grid">
+    <aside class="stage" aria-label="Ace and You">
+      <div class="ace-block">
+        <div class="ace-planet" id="wrapAce"><canvas id="planetAce"></canvas></div>
+        <div class="planet-name">Ace</div>
+      </div>
+      <div class="you-block">
+        <div class="you-planet listening" id="wrapYou"><canvas id="planetYou"></canvas></div>
+        <div class="planet-name you">You</div>
+      </div>
+      <div class="stage-status" id="stageStatus" aria-live="polite">Ready when you are.</div>
+    </aside>
+
+    <section class="convo" aria-label="Conversation">
+      <div class="cap-wrap">
+        <div class="cap-inner">
+          <div class="cap-prev" id="capPrev"></div>
+          <div class="cap-stage" id="capStage">
+            <div class="cap-label ace" id="capLabel">Ace</div>
+            <div class="cap-now ace" id="capNow"></div>
+          </div>
+        </div>
+      </div>
+      <div class="transport">
+        <button class="tbtn" id="prevBtn" title="Previous line" aria-label="Previous line">⏮</button>
+        <button class="tbtn main" id="playBtn" title="Play / pause" aria-label="Play">▶</button>
+        <button class="tbtn" id="replayBtn" title="Replay this line" aria-label="Replay this line">↻</button>
+        <button class="tbtn" id="nextBtn" title="Next line" aria-label="Next line">⏭</button>
+        <span class="counter" id="counter">1 / 1</span>
+      </div>
+      <div class="live-diff" id="liveDiff">
+        <span class="ld-label" id="diffLabel">Difficulty</span>
+        <button class="diffbtn" data-diff="simple" aria-describedby="diffLabel">Simple</button>
+        <button class="diffbtn" data-diff="moderate" aria-describedby="diffLabel">Moderate</button>
+        <button class="diffbtn" data-diff="tough" aria-describedby="diffLabel">Tough</button>
+      </div>
+      <div class="live-chips" id="liveChips"></div>
+      <div class="live-input" id="liveInput">
+        <button class="live-x" id="liveExit" title="Back to lessons" aria-label="Back to lessons">✕</button>
+        <label for="liveText" class="sr-only">Your message to Ace</label>
+        <input id="liveText" type="text" placeholder="Type your answer or a question…" maxlength="400" />
+        <button class="live-send" id="liveSend">Ask</button>
+      </div>
+    </section>
+
+    <aside class="work" aria-label="Working panel">
+      <div class="float-card" id="floatCard">
+        <div class="fc-question" id="fcQuestion"></div>
+        <div class="fc-head"><span class="wh-title">Working</span></div>
+        <div class="fc-calc" id="workList" aria-live="polite" aria-relevant="additions">
+          <div class="work-empty">Ace's calculations appear here as she goes — and stay, right under the question.</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="startgate" id="startGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-duo">
+    <div class="gate-friend"><div class="gate-wrap" id="gateWrapAce"><canvas id="gatePlanetAce"></canvas></div><div class="planet-name">Ace</div></div>
+    <div class="gate-friend"><div class="gate-wrap" id="gateWrapYou"><canvas id="gatePlanetYou"></canvas></div><div class="planet-name you">You</div></div>
+  </div>
+  <div class="gate-kicker">Aptitude · choose your level</div>
+  <div class="gate-title" id="gateTitle">It's just <b>Ace</b> and you.<br/>Pick where to begin.</div>
+  <div class="gate-sub">Ace talks you through it, gently — one line at a time. Choose a level, then press Begin.</div>
+  <div class="mode-picker" id="modePicker">
+    <button class="mode-btn selected" data-mode="beginner"><span class="mode-level">Beginner</span><span class="mode-topic">Simple Interest</span></button>
+    <button class="mode-btn" data-mode="intermediate"><span class="mode-level">Intermediate</span><span class="mode-topic">Permutation &amp; Combination</span></button>
+  </div>
+  <button class="gate-start" id="startBtn">▶ &nbsp;Begin</button>
+  <button class="gate-resume" id="resumeBtn" style="display:none;">↺ Resume — <span id="resumeLabel"></span></button>
+  <button class="gate-try" id="gateTryBtn">✦ &nbsp;Or chat live — ask Ace anything</button>
+  <div class="gate-note">🔊 Sound on — she's meant to be heard.</div>
+</div>
+
+<div class="key-panel" id="keyPanel" role="dialog" aria-modal="true" aria-labelledby="keyTitle">
+  <div class="key-card">
+    <button class="key-x" id="keyClose" title="Close" aria-label="Close">✕</button>
+    <div class="key-title" id="keyTitle">Chat live with <b>Ace</b></div>
+    <div class="key-sub">Ace sets you a fresh problem and teaches it, step by step, every time you open this. Paste your Groq API key to begin.</div>
+    <label for="groqKeyInput" class="sr-only">Groq API key</label>
+    <input id="groqKeyInput" type="password" placeholder="gsk_… your Groq API key" autocomplete="off" />
+    <label for="groqModelSel" class="sr-only">Groq model</label>
+    <select id="groqModelSel">
+      <option value="openai/gpt-oss-20b">openai/gpt-oss-20b · fast</option>
+      <option value="openai/gpt-oss-120b">openai/gpt-oss-120b · smarter</option>
+      <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+    </select>
+    <label class="key-remember"><input type="checkbox" id="rememberKey" /> Remember on this device</label>
+    <div class="key-msg" id="keyMsg" role="alert"></div>
+    <button class="key-connect" id="keyConnect">Start live practice</button>
+    <div class="key-note">Your key stays in your browser and is sent only to Groq's API — nowhere else. Get a free key at console.groq.com.</div>
+  </div>
+</div>
+
+<!-- planet.js must load before app.js: app.js reads window.PLANETS on init -->
+<script src="planet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
