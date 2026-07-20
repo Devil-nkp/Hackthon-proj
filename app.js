@@ -5,6 +5,12 @@
 (function(){
 "use strict";
 
+/* ==================== CONFIG — set your keys here ==================== */
+const GROQ_API_KEY  = '';   // ← paste your Groq key (gsk_…) before deploying
+const GROQ_MODEL    = 'openai/gpt-oss-20b';  // or 'openai/gpt-oss-120b', 'llama-3.3-70b-versatile'
+/* ===================================================================== */
+
+
 /* ============ BEGINNER — Simple Interest ============ */
 const BEGINNER = [
   { w:'ace', t:"Hey — come sit with me for a minute. I want to show you something, and I promise it's gentler than it sounds." },
@@ -418,9 +424,8 @@ const keyClose = document.getElementById('keyClose');
 
 let liveMode = false, liveBusy = false, liveMessages = [], liveLastPrev = '', thinkTimer = null;
 let pendingFlags = [];
-let groqKey = '', groqModel = 'openai/gpt-oss-20b';
-try{ const sk = localStorage.getItem('aceapt_groqKey'); if(sk) groqKey = sk; const sm = localStorage.getItem('aceapt_groqModel'); if(sm) groqModel = sm; }catch(e){}
-if(groqModelSel && groqModel) groqModelSel.value = groqModel;
+let groqKey = GROQ_API_KEY;
+let groqModel = GROQ_MODEL;
 
 const SYSTEM_PROMPT = `You are "Ace", a warm, gentle, patient aptitude tutor helping a student prepare for placement and competitive aptitude exams (Indian context — use the ₹ symbol for money). You speak softly and encouragingly, like a kind friend sitting beside them.
 
@@ -688,7 +693,7 @@ function startLiveSession(){
   playLiveStep({ say:"Hey — it's just us. First, pick a difficulty below — Simple, Moderate, or Tough — and I'll bring you a fresh problem to work through together." })
     .then(() => { clearPresence(); setStatus('pick'); liveBusy = false; setLiveEnabled(true); });
 }
-function enterLive(){ if(!groqKey){ showKeyPanel(''); return; } startLiveSession(); }
+function enterLive(){ if(!groqKey){ showKeyPanel('Set GROQ_API_KEY in app.js to enable live mode.'); return; } startLiveSession(); }
 function exitLive(){ liveMode = false; liveBusy = false; document.body.classList.remove('live'); thinkingPulse(false); cancelSpeech(); clearPresence(); reopenGate(); }
 
 /* one round-trip to Groq + playing out whatever it returns. Returns
@@ -758,9 +763,8 @@ document.querySelectorAll('.diffbtn').forEach(btn => { btn.addEventListener('cli
 if(keyClose) keyClose.addEventListener('click', () => keyPanel.classList.remove('show'));
 if(keyConnect) keyConnect.addEventListener('click', () => {
   const k = groqKeyInput.value.trim();
-  if(!k){ const note = document.getElementById('keyMsg'); if(note) note.textContent = 'Please paste your Groq API key.'; groqKeyInput.focus(); return; }
+  if(!k){ const note = document.getElementById('keyMsg'); if(note) note.textContent = 'Set GROQ_API_KEY in app.js before deploying.'; return; }
   groqKey = k; groqModel = groqModelSel ? groqModelSel.value : groqModel;
-  if(rememberKey && rememberKey.checked){ try{ localStorage.setItem('aceapt_groqKey', k); localStorage.setItem('aceapt_groqModel', groqModel); }catch(e){} }
   keyPanel.classList.remove('show');
   startLiveSession();
 });
