@@ -30,14 +30,18 @@ python3 -m http.server 8000
 
 ...or just open `index.html` directly in a modern browser.
 
-The two scripted lessons work immediately, with **no API key required**. Live mode needs a free Groq API key (pasted client-side, kept only in your browser — get one at console.groq.com) since it calls Groq directly from the browser.
+The two scripted lessons work immediately, with **no API key required** — open `index.html` directly, nothing to configure. Live mode calls a server-side proxy (`api/groq.js`) that holds the Groq key, so live mode only works where that function actually runs:
+
+- **Deployed on Vercel:** add `GROQ_API_KEY` (and optionally `GROQ_MODEL`) under Project → Settings → Environment Variables, then deploy. Nothing else to configure — `/api/groq.js` is picked up automatically.
+- **Local testing of live mode:** copy `.env.example` to `.env.local`, fill in a real key, and run `vercel dev` (the plain static server above only serves the two scripted lessons — it can't run the serverless function).
 
 ## 4. Tech stack
 
 - **HTML / CSS / JavaScript** — no framework, no build step, no dependencies.
 - **Canvas API** — the entire Ace/You planet visualization: procedural fracture generation, Fibonacci-sphere particle distribution, real-time lighting, all hand-written.
 - **Web Speech API** (`SpeechSynthesis`) — both voices, word-boundary-synced captions, with resilience layered on top for known Safari/iOS bugs (see §8).
-- **AI APIs** — Groq (`openai/gpt-oss-20b` / `120b`, OpenAI-compatible endpoint) powers the live tutor; nothing else calls a network API.
+- **AI APIs** — Groq (`openai/gpt-oss-20b` by default, configurable, OpenAI-compatible endpoint) powers the live tutor.
+- **Vercel Serverless Functions** — one tiny Node.js function (`api/groq.js`) holds the Groq key server-side; the only non-static piece of the whole project.
 
 ## 5. AI tools used, and how
 
@@ -49,7 +53,7 @@ Two distinct, deliberately separate uses of AI in this project:
 ## 6. Architecture & implementation decisions
 
 - **Split into `index.html` / `style.css` / `planet.js` / `app.js`** rather than one monolithic file. `planet.js` is a fully generic, reusable "living planet" component (palette + DOM refs passed in) — the same code drives all four planet instances (Ace and You, on the start screen and in the live app).
-- **Client-only, no backend, by design** — trivial to deploy anywhere static (Vercel/Netlify/GitHub Pages/plain hosting), zero server cost, zero server attack surface. The tradeoff is that live mode is **bring-your-own-key (BYOK)**: each visitor needs their own free Groq key. This was a conscious choice, not an oversight — the alternative (a hosted backend proxy holding a shared key) is the natural next step and is called out explicitly in §8.
+- **Static front-end + one small serverless proxy, by design.** Everything above is plain static files — no build step, no framework, deployable anywhere. The one exception is `api/groq.js`, a single Vercel Serverless Function whose only job is holding the real Groq key server-side (read from the `GROQ_API_KEY` environment variable) and forwarding requests to it. The browser never sees a key at all — it just calls the same-origin `/api/groq` endpoint. This removes the earlier bring-your-own-key friction entirely: whoever deploys the site sets the key once, in Vercel, and every visitor's live mode just works.
 - **A dedicated local arithmetic verifier (`safeEvalArith` / `verifyBoardLines` in `app.js`)** sits between Groq's output and what gets shown. It's deliberately narrow and **fails closed**: it only ever checks lines that are pure numeric arithmetic (e.g. `25 ÷ 100 × 200 = 50`), and silently skips anything symbolic, algebraic, or ambiguous rather than risk a false alarm. When it does catch a real mismatch, it quietly asks Ace to double-check that specific step before continuing — the same "wait, let me re-check" instinct already hand-authored into the Intermediate lesson (its committee-selection answer, 246, deliberately isn't among the listed options — Ace catches that and verifies rather than forcing a wrong match), now applied automatically to AI-generated content too.
 - **Accessibility**: a dedicated `aria-live` region mirrors every spoken line as plain text for screen readers (once per line, not per animated word); the Working panel and status line are live regions; every icon-only control has a matching `aria-label`; the previously non-focusable "switch level" control is now a real `<button>`.
 - **Browser resilience**: Safari/WebKit is documented to sometimes return an empty voice list on first load and to silently stop `speechSynthesis` when a tab is backgrounded — both are worked around (retry timers on voice loading; a `visibilitychange` listener that nudges speech back to life; a hard timeout so the conversation can never get permanently stuck mid-line).
@@ -59,7 +63,6 @@ Two distinct, deliberately separate uses of AI in this project:
 
 Being upfront about what's next, rather than pretending it's finished:
 
-- **BYOK friction** — live mode needs a personal Groq key; a small serverless proxy (holding one shared key server-side) is the natural fix and doesn't require re-architecting anything else.
 - **No accounts or cross-device history** — `localStorage` resume covers "closed the tab by accident," not "switched devices."
 - **Only two hand-authored lessons** — live mode covers breadth (any of ~17 topics, on demand); the roadmap is to grow the curated, fully-produced lesson set the same way these two were built.
 - **The arithmetic verifier checks numeric correctness, not full reasoning correctness** — it's a real, tested safety net for the highest-risk failure mode (arithmetic slips on multi-step problems), not a claim that every generated explanation is pedagogically perfect.
@@ -72,7 +75,12 @@ Being upfront about what's next, rather than pretending it's finished:
 ├── style.css       — the entire visual design system (ice palette, layout, motion)
 ├── planet.js       — the reusable living-planet particle/canvas component
 ├── app.js          — lesson content, the two-voice conversation engine,
-│                     the local math verifier, and the Groq live-chat integration
+│                     the local math verifier, and the Groq live-chat client
+├── api/
+│   └── groq.js     — Vercel Serverless Function: holds GROQ_API_KEY server-side,
+│                     proxies requests to Groq. The only non-static piece.
+├── .env.example    — the two environment variable names this needs (no real values)
+├── .gitignore
 └── README.md       — this file
 ```
 
