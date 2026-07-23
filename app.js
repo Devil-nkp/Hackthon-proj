@@ -5,12 +5,6 @@
 (function(){
 "use strict";
 
-/* ==================== CONFIG — set your keys here ==================== */
-const GROQ_API_KEY  = '';   // ← paste your Groq key (gsk_…) before deploying
-const GROQ_MODEL    = 'openai/gpt-oss-20b';  // or 'openai/gpt-oss-120b', 'llama-3.3-70b-versatile'
-/* ===================================================================== */
-
-
 /* ============ BEGINNER — Simple Interest ============ */
 const BEGINNER = [
   { w:'ace', t:"Hey — come sit with me for a minute. I want to show you something, and I promise it's gentler than it sounds." },
@@ -374,10 +368,9 @@ document.addEventListener('keydown', (e) => {
   else if(e.code === 'ArrowLeft'){ e.preventDefault(); goPrev(); }
   else if(e.key && e.key.toLowerCase() === 'r'){ replay(); }
 });
-/* Escape always works, in either mode: closes the key panel, or exits live chat */
+/* Escape always works during live chat: exits back to the lesson picker */
 document.addEventListener('keydown', (e) => {
   if(e.key !== 'Escape') return;
-  if(keyPanel && keyPanel.classList.contains('show')){ keyPanel.classList.remove('show'); return; }
   if(liveMode){ exitLive(); }
 });
 
@@ -415,17 +408,13 @@ const liveChips = document.getElementById('liveChips');
 const liveDiffEl = document.getElementById('liveDiff');
 const tryBtn = document.getElementById('tryBtn');
 const gateTryBtn = document.getElementById('gateTryBtn');
-const keyPanel = document.getElementById('keyPanel');
-const groqKeyInput = document.getElementById('groqKeyInput');
-const groqModelSel = document.getElementById('groqModelSel');
-const rememberKey = document.getElementById('rememberKey');
-const keyConnect = document.getElementById('keyConnect');
-const keyClose = document.getElementById('keyClose');
 
 let liveMode = false, liveBusy = false, liveMessages = [], liveLastPrev = '', thinkTimer = null;
 let pendingFlags = [];
-let groqKey = GROQ_API_KEY;
-let groqModel = GROQ_MODEL;
+/* No API key lives in the browser. The client only ever calls the
+   same-origin /api/groq endpoint (see api/groq.js); that serverless
+   function reads GROQ_API_KEY (and optionally GROQ_MODEL) from the
+   deployment's own environment variables and forwards the request. */
 
 const SYSTEM_PROMPT = `You are "Ace", a warm, gentle, patient aptitude tutor helping a student prepare for placement and competitive aptitude exams (Indian context — use the ₹ symbol for money). You speak softly and encouragingly, like a kind friend sitting beside them.
 
@@ -477,15 +466,15 @@ async function askGroq(messages){
   const to = setTimeout(() => ctrl.abort(), 35000);
   let res;
   try{
-    res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    res = await fetch('/api/groq', {
       method:'POST',
-      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + groqKey },
-      body: JSON.stringify({ model: groqModel, temperature:0.6, max_completion_tokens:2200, messages }),
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ messages }),
       signal: ctrl.signal
     });
   } finally { clearTimeout(to); }
   if(res.status === 429){ const e = new Error('rate_limited'); e.rateLimited = true; throw e; }
-  if(res.status === 401 || res.status === 403){ const e = new Error('auth'); e.auth = true; throw e; }
+  if(res.status === 401 || res.status === 403 || res.status === 500){ const e = new Error('auth'); e.auth = true; throw e; }
   if(!res.ok){ let t=''; try{ t = await res.text(); }catch(_){ } throw new Error('Groq ' + res.status + (t ? ': ' + t.slice(0,140) : '')); }
   const data = await res.json();
   return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '';
@@ -670,13 +659,6 @@ async function showUserLine(text){
   await speak(text, 'you'); reveal.complete();
   liveLastPrev = text;
 }
-function showKeyPanel(msg){
-  const note = document.getElementById('keyMsg'); if(note) note.textContent = msg || '';
-  if(groqModelSel) groqModelSel.value = groqModel;
-  if(groqKeyInput) groqKeyInput.value = groqKey || '';
-  keyPanel.classList.add('show');
-  if(groqKeyInput && !groqKey) setTimeout(() => groqKeyInput.focus(), 60);
-}
 function startLiveSession(){
   startGate.classList.add('hide');
   const p = P(); if(p.gateAce) p.gateAce.stop(); if(p.gateYou) p.gateYou.stop();
@@ -693,21 +675,22 @@ function startLiveSession(){
   playLiveStep({ say:"Hey — it's just us. First, pick a difficulty below — Simple, Moderate, or Tough — and I'll bring you a fresh problem to work through together." })
     .then(() => { clearPresence(); setStatus('pick'); liveBusy = false; setLiveEnabled(true); });
 }
-function enterLive(){ if(!groqKey){ showKeyPanel('Set GROQ_API_KEY in app.js to enable live mode.'); return; } startLiveSession(); }
+function enterLive(){ startLiveSession(); }
 function exitLive(){ liveMode = false; liveBusy = false; document.body.classList.remove('live'); thinkingPulse(false); cancelSpeech(); clearPresence(); reopenGate(); }
 
-/* one round-trip to Groq + playing out whatever it returns. Returns
-   true on success (so the caller can chain a verification follow-up),
-   false if it already handled cleanup itself (error / parse failure). */
+/* one round-trip to Groq (via the proxy) + playing out whatever it
+   returns. Returns true on success (so the caller can chain a
+   verification follow-up), false if it already handled cleanup itself
+   (error / parse failure). */
 async function sendAndPlay(){
   setStatus('thinking'); thinkingPulse(true);
   let content;
   try{ content = await askGroq(liveMessages); }
   catch(err){
     thinkingPulse(false);
-    if(err && err.auth){ liveBusy = false; setLiveEnabled(true); showKeyPanel('That key was rejected — try another.'); return false; }
-    if(err && err.rateLimited){ await playLiveStep({ say:"Ace is getting a lot of questions right now — give it a moment, then try again." }); }
-    else { await playLiveStep({ say:"Hmm — I couldn't reach Groq just then. Check your connection or key, and let's try that again." }); }
+    if(err && err.auth){ await playLiveStep({ say:"Ace's live connection isn't set up correctly on this deployment yet — the site owner needs to check the Groq key in their hosting settings." }); }
+    else if(err && err.rateLimited){ await playLiveStep({ say:"Ace is getting a lot of questions right now — give it a moment, then try again." }); }
+    else { await playLiveStep({ say:"Hmm — I couldn't reach Groq just then. Check your connection, and let's try that again." }); }
     clearPresence(); setStatus('live-idle'); liveBusy = false; setLiveEnabled(true); if(liveText) liveText.focus();
     return false;
   }
@@ -760,14 +743,6 @@ if(liveSend) liveSend.addEventListener('click', handleSend);
 if(liveText) liveText.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); handleSend(); } });
 if(liveExit) liveExit.addEventListener('click', exitLive);
 document.querySelectorAll('.diffbtn').forEach(btn => { btn.addEventListener('click', () => setDiff(btn.getAttribute('data-diff'))); });
-if(keyClose) keyClose.addEventListener('click', () => keyPanel.classList.remove('show'));
-if(keyConnect) keyConnect.addEventListener('click', () => {
-  const k = groqKeyInput.value.trim();
-  if(!k){ const note = document.getElementById('keyMsg'); if(note) note.textContent = 'Set GROQ_API_KEY in app.js before deploying.'; return; }
-  groqKey = k; groqModel = groqModelSel ? groqModelSel.value : groqModel;
-  keyPanel.classList.remove('show');
-  startLiveSession();
-});
 
 /* Safari/iOS can silently drop speechSynthesis while the tab is
    backgrounded; speak()'s own watchdog already recovers within a few
