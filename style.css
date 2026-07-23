@@ -189,21 +189,6 @@ body.live .live-diff{ display:flex; flex-wrap:wrap; }
 .gate-try{ margin-top:-2px; background:transparent; border:1px solid rgba(127,184,255,0.4); color:var(--ice); border-radius:24px; padding:11px 22px; font-family:var(--f-body); font-weight:600; font-size:13.5px; cursor:pointer; transition:.15s; }
 .gate-try:hover{ background:rgba(127,184,255,0.1); }
 
-.key-panel{ position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(4,7,18,0.72); backdrop-filter:blur(4px); }
-.key-panel.show{ display:flex; }
-.key-card{ position:relative; width:min(420px,92vw); background:linear-gradient(180deg, rgba(18,26,54,0.98), rgba(10,15,34,0.98)); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:26px 24px 22px; box-shadow:0 40px 90px -30px rgba(0,0,0,0.8); display:flex; flex-direction:column; gap:12px; }
-.key-x{ position:absolute; top:14px; right:14px; width:30px; height:30px; border-radius:50%; border:1px solid var(--line); background:transparent; color:var(--mist); cursor:pointer; }
-.key-x:hover{ color:var(--ice); border-color:var(--ice); }
-.key-title{ font-family:var(--f-display); font-weight:600; font-size:20px; }
-.key-title b{ color:var(--ice); }
-.key-sub{ font-size:13px; color:var(--mist); line-height:1.5; margin-bottom:2px; }
-.key-card input[type=password], .key-card select{ width:100%; padding:11px 14px; border-radius:11px; border:1px solid var(--line); background:rgba(255,255,255,0.05); color:var(--paper); font-family:var(--f-body); font-size:14px; outline:none; }
-.key-card input[type=password]:focus, .key-card select:focus{ border-color:var(--ice); }
-.key-remember{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--mist); cursor:pointer; }
-.key-msg{ font-size:12.5px; color:#ff9b8b; min-height:2px; }
-.key-connect{ background:var(--ice); color:var(--ink); border:none; border-radius:24px; padding:12px 20px; font-weight:700; font-size:14.5px; cursor:pointer; margin-top:2px; transition:.15s; }
-.key-connect:hover{ filter:brightness(1.08); }
-.key-note{ font-size:11px; color:var(--mist); opacity:0.85; line-height:1.5; }
 .work-sep{ font-family:var(--f-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ice); padding:8px 2px 2px; opacity:0.9; }
 
 @media (max-width:1024px){
