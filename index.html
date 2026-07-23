@@ -102,25 +102,6 @@
   <div class="gate-note">🔊 Sound on — she's meant to be heard.</div>
 </div>
 
-<div class="key-panel" id="keyPanel" role="dialog" aria-modal="true" aria-labelledby="keyTitle">
-  <div class="key-card">
-    <button class="key-x" id="keyClose" title="Close" aria-label="Close">✕</button>
-    <div class="key-title" id="keyTitle">Chat live with <b>Ace</b></div>
-    <div class="key-sub">Ace sets you a fresh problem and teaches it, step by step, every time you open this. Paste your Groq API key to begin.</div>
-    <label for="groqKeyInput" class="sr-only">Groq API key</label>
-    <input id="groqKeyInput" type="password" placeholder="gsk_… your Groq API key" autocomplete="off" />
-    <label for="groqModelSel" class="sr-only">Groq model</label>
-    <select id="groqModelSel">
-      <option value="openai/gpt-oss-20b">openai/gpt-oss-20b · fast</option>
-      <option value="openai/gpt-oss-120b">openai/gpt-oss-120b · smarter</option>
-      <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
-    </select>
-    <label class="key-remember"><input type="checkbox" id="rememberKey" /> Remember on this device</label>
-    <div class="key-msg" id="keyMsg" role="alert"></div>
-    <button class="key-connect" id="keyConnect">Start live practice</button>
-    <div class="key-note">Your key stays in your browser and is sent only to Groq's API — nowhere else. Get a free key at console.groq.com.</div>
-  </div>
-</div>
 
 <!-- planet.js must load before app.js: app.js reads window.PLANETS on init -->
 <script src="planet.js"></script>
