@@ -758,4 +758,57 @@ document.addEventListener('visibilitychange', () => {
 loadLesson(selectedMode);
 refreshResumeButton();
 
+/* ===================== INTRO VIDEO (plays first, gates entry) =====================
+   Plays on every load; auto-advances to the product when it ends; always
+   skippable. Browsers block autoplay-with-sound unless the user already
+   interacted with the page, so this tries sound first and falls back to a
+   muted autoplay + one-tap "unmute" prompt if that's blocked — the video
+   itself always starts immediately either way. A missing/broken video file
+   (no intro.mp4 yet) skips straight to the product rather than showing a
+   stuck black screen. */
+const introVideo = document.getElementById('introVideo');
+const introVideoEl = document.getElementById('introVideoEl');
+const introSkip = document.getElementById('introSkip');
+const introSoundPrompt = document.getElementById('introSoundPrompt');
+const homeBtn = document.getElementById('homeBtn');
+const gateReplayIntro = document.getElementById('gateReplayIntro');
+
+function showIntroSoundPrompt(show){ if(introSoundPrompt) introSoundPrompt.classList.toggle('show', !!show); }
+function goToProduct(){
+  if(!introVideo) return;
+  try{ introVideoEl.pause(); }catch(e){}
+  introVideo.classList.add('hide');
+}
+function playIntro(){
+  if(!introVideo || !introVideoEl) return;
+  introVideo.classList.remove('hide');
+  showIntroSoundPrompt(false);
+  try{ introVideoEl.currentTime = 0; }catch(e){}
+  introVideoEl.muted = false;
+  if(introSkip) introSkip.focus();
+  const p = introVideoEl.play();
+  if(p && p.catch){
+    p.catch(() => {
+      /* sound-on autoplay was blocked — fall back to muted autoplay + a one-tap unmute prompt */
+      introVideoEl.muted = true;
+      showIntroSoundPrompt(true);
+      introVideoEl.play().catch(goToProduct); /* even muted autoplay failed — don't block on a frozen frame */
+    });
+  }
+}
+if(introVideoEl){
+  introVideoEl.addEventListener('ended', goToProduct);
+  introVideoEl.addEventListener('error', goToProduct); /* no video file at this path yet → go straight to the product */
+  introVideoEl.addEventListener('click', () => { if(introVideoEl.muted){ introVideoEl.muted = false; showIntroSoundPrompt(false); } });
+}
+if(introSoundPrompt) introSoundPrompt.addEventListener('click', () => { if(introVideoEl){ introVideoEl.muted = false; showIntroSoundPrompt(false); } });
+if(introSkip) introSkip.addEventListener('click', goToProduct);
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && introVideo && !introVideo.classList.contains('hide')) goToProduct(); });
+
+/* Home: universal quick-access back-to-start, reachable from a lesson or live chat alike */
+if(homeBtn) homeBtn.addEventListener('click', () => { if(liveMode) exitLive(); else reopenGate(); });
+if(gateReplayIntro) gateReplayIntro.addEventListener('click', playIntro);
+
+if(introVideoEl && introVideoEl.getAttribute('src')){ playIntro(); } else if(introVideo){ introVideo.classList.add('hide'); }
+
 })();
