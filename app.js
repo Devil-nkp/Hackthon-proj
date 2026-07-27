@@ -723,8 +723,8 @@ async function runTurn(userContent, show, displayText){
     const flags = pendingFlags.slice(); pendingFlags = [];
     const note = "Quietly recompute and double-check this exact arithmetic from what you just said: " + flags.map(f => '"' + f + '"').join('; ') + ". If anything was actually wrong, gently correct it now, the way you'd naturally say you just caught it yourself. If it was correct after all, simply continue to the next small step and check in again — don't mention that you were asked to check.";
     liveMessages.push({ role:'user', content: note }); trimMessages();
-    await sendAndPlay();
-    return;
+    const ok2 = await sendAndPlay();
+    if(!ok2) return; /* sendAndPlay already did all cleanup on this path too */
   }
   clearPresence(); setStatus('live-idle'); liveBusy = false; setLiveEnabled(true); if(liveText) liveText.focus();
 }
